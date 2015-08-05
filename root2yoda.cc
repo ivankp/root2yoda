@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <vector>
 
 #include <TFile.h>
 #include <TDirectory.h>
@@ -9,6 +8,7 @@
 
 #include <YODA/Histo1D.h>
 #include <YODA/Dbn1D.h>
+#include <YODA/WriterYODA.h>
 
 using namespace std;
 using namespace YODA;
@@ -50,23 +50,22 @@ void read(TDirectory *d, vector<const Histo1D*>& hists) noexcept {
   }
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   if (argc!=2 && argc!=3) {
     cout << "Usage: " << argv[0] << " in.root [out.yoda]" << endl;
     return 0;
   }
   
   // determine output file name
-  string fout_name;
+  string fout;
   if (argc==2) {
     string fin(argv[1]);
     size_t sep = fin.find('/');
     if (sep!=string::npos) fin = fin.substr(sep+1);
     sep = fin.rfind('.');
     if (sep!=string::npos) fin = fin.substr(0,sep);
-    fout_name = fin + ".yoda";
-  } else fout_name = argv[2];
+    fout = fin + ".yoda";
+  } else fout = argv[2];
 
   // open root file
   TFile *fin = new TFile(argv[1],"read");
@@ -78,12 +77,8 @@ int main(int argc, char **argv)
   read(fin,hists);
   cout << hists.size() << " hists" << endl;
 
-  // write output file  
-/*
-  ofstream fout(fout_name);
-  for (auto *h : hists)
-    writeHisto1D(fout, const Histo1D &h);
-*/
+  // write output file
+  WriterYODA::create().write(fout,hists);
 
   return 0;
 }
