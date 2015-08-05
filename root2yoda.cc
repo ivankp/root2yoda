@@ -30,12 +30,13 @@ const Histo1D* convert(const TH1* rh, const string& path) noexcept {
     );
   }
 
-  test(rh->GetName())
-  return new Histo1D(bins,'/'+path,rh->GetName());
+  string _path = path.substr(path.find('/'));
+  if (_path.back()!='/') _path += '/';
+  _path += rh->GetName();
+  return new Histo1D(bins, _path, rh->GetName());
 }
 
-void read(TDirectory *d, vector<const Histo1D*>& hists) noexcept {
-  test(d->GetName())
+void read(TDirectory *d, vector<const AnalysisObject*>& hists) noexcept {
   TKey *key;
   TIter nextkey(d->GetListOfKeys());
   while ((key = static_cast<TKey*>(nextkey()))) {
@@ -70,15 +71,16 @@ int main(int argc, char **argv) {
   // open root file
   TFile *fin = new TFile(argv[1],"read");
   if (fin->IsZombie()) return 1;
-  cout << "File: " << fin->GetName() << endl;
+  cout << "Input : " << fin->GetName() << endl;
   
   // read root file and convert all TH1s
-  vector<const Histo1D*> hists;
+  vector<const AnalysisObject*> hists;
   read(fin,hists);
   cout << hists.size() << " hists" << endl;
 
   // write output file
   WriterYODA::create().write(fout,hists);
+  cout << "Output: " << fout << endl;
 
   return 0;
 }

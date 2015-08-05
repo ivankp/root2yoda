@@ -1,4 +1,4 @@
-CFLAGS := -std=c++11 -Wall -g
+CFLAGS := -std=c++11 -Wall -O3
 
 ROOT_CFLAGS := $(shell root-config --cflags)
 ROOT_LIBS   := $(shell root-config --libs)
