@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 #include <TFile.h>
 #include <TDirectory.h>
@@ -16,24 +17,33 @@ using namespace YODA;
 #define test(var) \
   cout <<"\033[36m"<< #var <<"\033[0m"<< " = " << var << endl;
 
-const Histo1D* convert(const TH1* rh, const string& path) noexcept {
-  const Int_t nbins = rh->GetNbinsX()+2;
+const Histo1D* convert(const TH1* rh, string path) noexcept {
+  const Int_t nbins = rh->GetNbinsX();
   const TArrayD& sumw2 = *rh->GetSumw2();
 
   vector<HistoBin1D> bins;
   bins.reserve(nbins);
   
-  for (Int_t i=0; i<nbins; ++i) {
-    bins.emplace_back(
-      make_pair(rh->GetBinLowEdge(i),rh->GetBinLowEdge(i+1)),
-      Dbn1D(1, rh->GetBinContent(i), sumw2.GetSize() ? sumw2[i] : 1., 1., 1.)
-    );
+  Dbn1D total;
+  for (Int_t i=1; i<=nbins; ++i) {
+    Dbn1D dbn(0, rh->GetBinContent(i), sumw2.GetSize() ? sumw2[i] : 0., 0., 0.);
+    bins.emplace_back(make_pair(rh->GetBinLowEdge(i),rh->GetBinLowEdge(i+1)), dbn);
+    total += dbn;
   }
 
-  string _path = path.substr(path.find('/'));
-  if (_path.back()!='/') _path += '/';
-  _path += rh->GetName();
-  return new Histo1D(bins, _path, rh->GetName());
+  path = path.substr(path.find('/'));
+  if (path.back()!='/') path += '/';
+  path += rh->GetName();
+
+  auto hist = new Histo1D(bins, path, rh->GetName());
+  total += ( hist->underflow() = Dbn1D(
+    0, rh->GetBinContent(0), sumw2.GetSize() ? sumw2[0] : 0., 0., 0.) );
+  total += ( hist-> overflow() = Dbn1D(
+    0, rh->GetBinContent(nbins+1), sumw2.GetSize() ? sumw2[nbins+1] : 0., 0., 0.) );
+  total += Dbn1D(lround(rh->GetEntries()), 0.,0.,0.,0.);
+  hist->totalDbn() = total;
+
+  return hist;
 }
 
 void read(TDirectory *d, vector<const AnalysisObject*>& hists) noexcept {
